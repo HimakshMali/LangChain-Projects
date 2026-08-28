@@ -24,7 +24,7 @@ macOS/Linux/Windows
 
 1. Clone the repository
 
-git clone <your-repository-url>
+git clone https://github.com/HimakshMali/LangChain-Projects.git
 cd simple-rag-app
 
 2. Create a virtual environment
