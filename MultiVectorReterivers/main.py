@@ -6,7 +6,8 @@
 # In absence of complete contexts the llm can hallucinate.
 
 # MultiVectorReterival address this by decoupling storage into two layered like (summary/sub-chunks and raw parent chunk) which are lined by same shared uuid
-
+# the summries are in vectordatabase and 
+# the chunks are in docStore(standard and in this case PostgresSQL)
 import uuid
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_ollama import OllamaEmbeddings, ChatOllama, OllamaLLM
@@ -20,7 +21,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 
-# Indexing API & Ledger Imports
+
 from langchain_classic.indexes import SQLRecordManager, index
 
 
@@ -70,17 +71,29 @@ retriever = MultiVectorRetriever(
     id_key=id_key,
 )
 
+
+
+# the code below link the summry code to parent chunk
+
 # Deterministic ID Generation and Document Pairing
 # Generate reproducible UUIDs based on chunk content so re-runs produce identical IDs
+
+
 doc_ids = [str(uuid.uuid5(uuid.NAMESPACE_DNS, chunk.page_content)) for chunk in parent_chunks]
 
-# Create summary docs containing doc_id and source metadata for tracking
-# Create summary docs containing doc_id and source metadata for tracking
+# Parallel Summarization Chain via Ollama
+# the llama3.2 is generating the short Summaries of the Parent Chunks
+# it is assigning the same UUIDs for both parent chunks and short summary
+# the parent chunks are in doc store while the summaries are in vectorstore
+
+
 summary_docs = [
     Document(
         page_content=summary,
         metadata={
             id_key: doc_ids[i],
+            # here the source means from where the file has came
+            # in this case it is ./test.pdf
             "source": parent_chunks[i].metadata.get("source", "./test.pdf"),
             "page": parent_chunks[i].metadata.get("page", 0)
         }
@@ -91,7 +104,7 @@ summary_docs = [
 # Populate the in-memory document store with parent chunks
 retriever.docstore.mset(list(zip(doc_ids, parent_chunks)))
 
-# 6. SQLRecordManager Ledger & Conditional Indexing
+#SQLRecordManager Ledger & Conditional Indexing
 namespace = f"pgvector/{collection_name}"
 record_manager = SQLRecordManager(
     namespace=namespace,
@@ -100,6 +113,11 @@ record_manager = SQLRecordManager(
 record_manager.create_schema()
 
 # Conditionally index summary docs into PGVector
+
+# here index manages the state of the file 
+# index() prevents the duplication from injestion of data into postgresql everythime we run the script
+# lets say if we edit the original file test.pdf then it will detect the changes and delete the older chunk
+
 indexing_stats = index(
     docs_source=summary_docs,
     record_manager=record_manager,
