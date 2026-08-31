@@ -1,5 +1,5 @@
-<!-- this is the claude generated md file which is the mixture of my personal notes and concpets and info ive gatherd with my own research  -->
-<!-- it also explain the flow or archicture of my code in this repo of RAPTOR -->
+# this is the claude generated md file which is the mixture of my personal notes and concpets and info ive gatherd with my own research  
+# it also explain the flow or archicture of my code in this repo of RAPTOR 
 
 
 # RAPTOR — Recursive Abstractive Processing for Tree-Organized Retrieval
